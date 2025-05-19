@@ -24,7 +24,7 @@ class ContactController extends Controller
             'name'  => 'required|string|max:255',
             'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
-            'gender' => 'nullable|in:Male,Female,Other',
+            'gender' => 'nullable|in:Male,Female',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png',
             'additional_file' => 'nullable|file|max:2048',
         ]);
@@ -51,6 +51,14 @@ class ContactController extends Controller
                 ]);
             }
         }
+
+        foreach ($request->custom_fields as $fieldId => $value) {
+            ContactCustomFieldValue::updateOrCreate(
+                ['contact_id' => $contact->id, 'custom_field_id' => $fieldId],
+                ['value' => $value]
+            );
+        }
+        
 
         return response()->json(['success' => true, 'message' => 'Contact created successfully']);
     }
@@ -86,6 +94,14 @@ class ContactController extends Controller
                 );
             }
         }
+
+        foreach ($request->custom_fields as $fieldId => $value) {
+            ContactCustomFieldValue::updateOrCreate(
+                ['contact_id' => $contact->id, 'custom_field_id' => $fieldId],
+                ['value' => $value]
+            );
+        }
+        
 
         return response()->json(['success' => true, 'message' => 'Contact updated successfully']);
     }
