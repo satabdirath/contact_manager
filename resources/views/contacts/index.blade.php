@@ -42,6 +42,8 @@
 @include('contacts.partials.contact-modal')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
     const BASE_URL = "{{ url('/') }}"; // Laravel base URL
 
@@ -50,16 +52,18 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
+
     // Submit Contact Form (Add/Update)
     $('#contactForm').on('submit', function(e) {
         e.preventDefault();
+
         let formData = new FormData(this);
         let contactId = $('#contact_id').val();
         let method = 'POST';
         let url = contactId ? `${BASE_URL}/contacts/${contactId}` : `${BASE_URL}/contacts`;
 
         if (contactId) {
-            formData.append('_method', 'PUT');
+            formData.append('_method', 'PUT'); // For Laravel PUT spoofing
         }
 
         $.ajax({
@@ -68,12 +72,12 @@
             data: formData,
             processData: false,
             contentType: false,
-            success: res => {
+            success: function(res) {
                 $('#contactModal').modal('hide');
                 alert(res.message);
-                loadContacts(); // Reload contacts
+                loadContacts(); // Reload contacts partial dynamically
             },
-            error: err => {
+            error: function(err) {
                 let msg = err.responseJSON?.message || 'Error occurred';
                 alert(msg);
             }
@@ -83,7 +87,8 @@
     // Edit Contact - Open Modal with Prefilled Data
     $(document).on('click', '.editBtn', function() {
         let id = $(this).data('id');
-        $.get(`${BASE_URL}/contacts/${id}/edit`, res => {
+
+        $.get(`${BASE_URL}/contacts/${id}/edit`, function(res) {
             $('#contact_id').val(res.id);
             $('#name').val(res.name);
             $('#email').val(res.email);
@@ -102,38 +107,35 @@
 
     // Delete Contact
     $(document).on('click', '.deleteBtn', function() {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+        if (!confirm('Are you sure you want to delete this contact?')) return;
 
-    let id = $(this).data('id');
-    $.ajax({
-        url: `${BASE_URL}/contacts/${id}`,
-        type: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: res => {
-            alert(res.message);
-            loadContacts(); // Refresh list after delete
-        },
-        error: err => {
-            let msg = err.responseJSON?.message || 'Delete failed';
-            alert(msg);
-        }
+        let id = $(this).data('id');
+
+        $.ajax({
+            url: `${BASE_URL}/contacts/${id}`,
+            type: 'DELETE',
+            success: function(res) {
+                alert(res.message);
+                loadContacts(); // Refresh contacts list dynamically
+            },
+            error: function(err) {
+                let msg = err.responseJSON?.message || 'Delete failed';
+                alert(msg);
+            }
+        });
     });
-});
 
-
-
-    // Filter Form
+    // Filter Form submit
     $('#filterForm').on('submit', function(e) {
         e.preventDefault();
         loadContacts();
     });
 
-    // Load contacts using AJAX (initial & after actions)
+    // Load contacts partial via AJAX (initial load & after any action)
     function loadContacts() {
         let filters = $('#filterForm').serialize();
-        $.get(`${BASE_URL}/contacts?${filters}`, function(data) {
+
+        $.get(`${BASE_URL}/contacts/table?${filters}`, function(data) {
             $('#contactList').html(data);
         });
     }
@@ -144,6 +146,12 @@
         $('#contact_id').val('');
         $('.custom-field').val('');
     });
+
+    // Initial load on page ready
+    $(document).ready(function() {
+        loadContacts();
+    });
 </script>
+
 
 @endsection
